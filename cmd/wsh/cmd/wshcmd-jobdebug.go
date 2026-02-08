@@ -95,6 +95,12 @@ var jobDebugDetachJobCmd = &cobra.Command{
 	RunE:  jobDebugDetachJobRun,
 }
 
+var jobDebugBlockAttachmentCmd = &cobra.Command{
+	Use:   "blockattachment",
+	Short: "show the attached job for a block",
+	RunE:  jobDebugBlockAttachmentRun,
+}
+
 var jobIdFlag string
 var jobDebugJsonFlag bool
 var jobConnFlag string
@@ -120,6 +126,7 @@ func init() {
 	jobDebugCmd.AddCommand(jobDebugStartCmd)
 	jobDebugCmd.AddCommand(jobDebugAttachJobCmd)
 	jobDebugCmd.AddCommand(jobDebugDetachJobCmd)
+	jobDebugCmd.AddCommand(jobDebugBlockAttachmentCmd)
 
 	jobDebugListCmd.Flags().BoolVar(&jobDebugJsonFlag, "json", false, "output as JSON")
 
@@ -178,7 +185,7 @@ func jobDebugListRun(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Printf("%-36s %-20s %-9s %-10s %-6s %-30s %-8s %-10s %-8s\n", "OID", "Connection", "Connected", "Manager", "Reason", "Cmd", "ExitCode", "Stream", "Attached")
+	fmt.Printf("%-36s %-25s %-9s %-10s %-6s %-30s %-8s %-10s %-8s\n", "OID", "Connection", "Connected", "Manager", "Reason", "Cmd", "ExitCode", "Stream", "Attached")
 	for _, job := range rtnData {
 		connectedStatus := "no"
 		if connectedMap[job.OID] {
@@ -226,7 +233,7 @@ func jobDebugListRun(cmd *cobra.Command, args []string) error {
 			}
 		}
 
-		fmt.Printf("%-36s %-20s %-9s %-10s %-6s %-30s %-8s %-10s %-8s\n",
+		fmt.Printf("%-36s %-25s %-9s %-10s %-6s %-30s %-8s %-10s %-8s\n",
 			job.OID, job.Connection, connectedStatus, job.JobManagerStatus, doneReason, job.Cmd, exitCode, streamStatus, attachedBlock)
 	}
 	return nil
@@ -416,5 +423,25 @@ func jobDebugDetachJobRun(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("Job %s detached successfully\n", detachJobIdFlag)
+	return nil
+}
+
+func jobDebugBlockAttachmentRun(cmd *cobra.Command, args []string) error {
+	blockORef, err := resolveBlockArg()
+	if err != nil {
+		return err
+	}
+
+	blockId := blockORef.OID
+	jobStatus, err := wshclient.BlockJobStatusCommand(RpcClient, blockId, &wshrpc.RpcOpts{Timeout: 5000})
+	if err != nil {
+		return fmt.Errorf("getting block job status: %w", err)
+	}
+
+	if jobStatus.JobId == "" {
+		fmt.Printf("Block %s: no attached job\n", blockId)
+	} else {
+		fmt.Printf("Block %s: attached to job %s\n", blockId, jobStatus.JobId)
+	}
 	return nil
 }

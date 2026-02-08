@@ -23,6 +23,7 @@ declare global {
         "ai:apitype"?: string;
         "ai:model"?: string;
         "ai:thinkinglevel"?: string;
+        "ai:verbosity"?: string;
         "ai:endpoint"?: string;
         "ai:azureapiversion"?: string;
         "ai:apitoken"?: string;
@@ -138,6 +139,19 @@ declare global {
         workspaceid: string;
         block: Block;
         files: WaveFileInfo[];
+    };
+
+    // wshrpc.BlockJobStatusData
+    type BlockJobStatusData = {
+        blockid: string;
+        jobid: string;
+        status?: null | "init" | "connected" | "disconnected" | "done";
+        versionts: number;
+        donereason?: string;
+        startuperror?: string;
+        cmdexitts?: number;
+        cmdexitcode?: number;
+        cmdexitsignal?: string;
     };
 
     // wshrpc.BlocksListEntry
@@ -610,12 +624,6 @@ declare global {
         lastupdated: number;
     };
 
-    // wshrpc.CommandTermUpdateAttachedJobData
-    type CommandTermUpdateAttachedJobData = {
-        blockid: string;
-        jobid?: string;
-    };
-
     // wshrpc.CommandVarData
     type CommandVarData = {
         key: string;
@@ -741,6 +749,7 @@ declare global {
         "term:fontsize"?: number;
         "term:fontfamily"?: string;
         "term:theme"?: string;
+        "term:durable"?: boolean;
         "cmd:env"?: {[key: string]: string};
         "cmd:initscript"?: string;
         "cmd:initscript.sh"?: string;
@@ -923,6 +932,7 @@ declare global {
         cmdenv?: {[key: string]: string};
         jobauthtoken: string;
         attachedblockid?: string;
+        waveversion?: string;
         terminateonreconnect?: boolean;
         jobmanagerstatus: string;
         jobmanagerdonereason?: string;
@@ -938,6 +948,12 @@ declare global {
         cmdexiterror?: string;
         streamdone?: boolean;
         streamerror?: string;
+    };
+
+    // wshrpc.JobManagerStatusUpdate
+    type JobManagerStatusUpdate = {
+        jobid: string;
+        jobmanagerstatus: string;
     };
 
     // waveobj.LayoutActionData
@@ -1065,6 +1081,7 @@ declare global {
         "term:conndebug"?: string;
         "term:bellsound"?: boolean;
         "term:bellindicator"?: boolean;
+        "term:durable"?: boolean;
         "web:zoom"?: number;
         "web:hidenav"?: boolean;
         "web:partition"?: string;
@@ -1250,6 +1267,7 @@ declare global {
         "term:macoptionismeta"?: boolean;
         "term:bellsound"?: boolean;
         "term:bellindicator"?: boolean;
+        "term:durable"?: boolean;
         "editor:minimapenabled"?: boolean;
         "editor:stickyscrollenabled"?: boolean;
         "editor:wordwrap"?: boolean;
@@ -1259,8 +1277,6 @@ declare global {
         "web:openlinksinternally"?: boolean;
         "web:defaulturl"?: string;
         "web:defaultsearch"?: string;
-        "blockheader:*"?: boolean;
-        "blockheader:showblockids"?: boolean;
         "autoupdate:*"?: boolean;
         "autoupdate:enabled"?: boolean;
         "autoupdate:intervalms"?: number;
@@ -1297,6 +1313,7 @@ declare global {
         "conn:*"?: boolean;
         "conn:askbeforewshinstall"?: boolean;
         "conn:wshenabled"?: boolean;
+        "conn:localhostdisplayname"?: string;
         "debug:*"?: boolean;
         "debug:pprofport"?: number;
         "debug:pprofmemprofilerate"?: number;
