@@ -97,6 +97,7 @@ type SettingsType struct {
 	TermMacOptionIsMeta     *bool    `json:"term:macoptionismeta,omitempty"`
 	TermBellSound           *bool    `json:"term:bellsound,omitempty"`
 	TermBellIndicator       *bool    `json:"term:bellindicator,omitempty"`
+	TermDurable             *bool    `json:"term:durable,omitempty"`
 
 	EditorMinimapEnabled      bool    `json:"editor:minimapenabled,omitempty"`
 	EditorStickyScrollEnabled bool    `json:"editor:stickyscrollenabled,omitempty"`
@@ -108,9 +109,6 @@ type SettingsType struct {
 	WebOpenLinksInternally bool   `json:"web:openlinksinternally,omitempty"`
 	WebDefaultUrl          string `json:"web:defaulturl,omitempty"`
 	WebDefaultSearch       string `json:"web:defaultsearch,omitempty"`
-
-	BlockHeaderClear        bool `json:"blockheader:*,omitempty"`
-	BlockHeaderShowBlockIds bool `json:"blockheader:showblockids,omitempty"`
 
 	AutoUpdateClear         bool    `json:"autoupdate:*,omitempty"`
 	AutoUpdateEnabled       bool    `json:"autoupdate:enabled,omitempty"`
@@ -152,9 +150,10 @@ type SettingsType struct {
 	TelemetryClear   bool `json:"telemetry:*,omitempty"`
 	TelemetryEnabled bool `json:"telemetry:enabled,omitempty"`
 
-	ConnClear               bool  `json:"conn:*,omitempty"`
-	ConnAskBeforeWshInstall *bool `json:"conn:askbeforewshinstall,omitempty"`
-	ConnWshEnabled          bool  `json:"conn:wshenabled,omitempty"`
+	ConnClear                bool    `json:"conn:*,omitempty"`
+	ConnAskBeforeWshInstall  *bool   `json:"conn:askbeforewshinstall,omitempty"`
+	ConnWshEnabled           bool    `json:"conn:wshenabled,omitempty"`
+	ConnLocalHostnameDisplay *string `json:"conn:localhostdisplayname,omitempty"`
 
 	DebugClear               bool `json:"debug:*,omitempty"`
 	DebugPprofPort           *int `json:"debug:pprofport,omitempty"`
@@ -276,6 +275,7 @@ type AIModeConfigType struct {
 	APIType            string   `json:"ai:apitype,omitempty" jsonschema:"enum=google-gemini,enum=openai-responses,enum=openai-chat"`
 	Model              string   `json:"ai:model,omitempty"`
 	ThinkingLevel      string   `json:"ai:thinkinglevel,omitempty" jsonschema:"enum=low,enum=medium,enum=high"`
+	Verbosity          string   `json:"ai:verbosity,omitempty" jsonschema:"enum=low,enum=medium,enum=high,description=Text verbosity level (OpenAI Responses API only)"`
 	Endpoint           string   `json:"ai:endpoint,omitempty"`
 	AzureAPIVersion    string   `json:"ai:azureapiversion,omitempty"`
 	APIToken           string   `json:"ai:apitoken,omitempty"`
@@ -319,6 +319,7 @@ type ConnKeywords struct {
 	TermFontSize   float64 `json:"term:fontsize,omitempty"`
 	TermFontFamily string  `json:"term:fontfamily,omitempty"`
 	TermTheme      string  `json:"term:theme,omitempty"`
+	TermDurable    *bool   `json:"term:durable,omitempty"`
 
 	CmdEnv            map[string]string `json:"cmd:env,omitempty"`
 	CmdInitScript     string            `json:"cmd:initscript,omitempty"`
