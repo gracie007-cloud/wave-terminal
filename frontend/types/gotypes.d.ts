@@ -391,6 +391,7 @@ declare global {
     // wshrpc.CommandJobControllerStartJobData
     type CommandJobControllerStartJobData = {
         connname: string;
+        jobkind: string;
         cmd: string;
         args: string[];
         env: {[key: string]: string};
@@ -785,6 +786,7 @@ declare global {
     // wshrpc.ConnStatus
     type ConnStatus = {
         status: string;
+        connhealthstatus?: string;
         wshenabled: boolean;
         connection: string;
         connected: boolean;
@@ -794,6 +796,8 @@ declare global {
         wsherror?: string;
         nowshreason?: string;
         wshversion?: string;
+        lastactivitybeforestalledtime?: number;
+        keepalivesenttime?: number;
     };
 
     // wshrpc.CpuDataRequest
@@ -907,6 +911,19 @@ declare global {
         ijsonbudget?: number;
         truncate?: boolean;
         append?: boolean;
+    };
+
+    // wshrpc.FocusedBlockData
+    type FocusedBlockData = {
+        blockid: string;
+        viewtype: string;
+        controller: string;
+        connname: string;
+        blockmeta: MetaType;
+        termjobstatus?: BlockJobStatusData;
+        connstatus?: ConnStatus;
+        termshellintegrationstatus?: string;
+        termlastcommand?: string;
     };
 
     // wconfig.FullConfigType
@@ -1234,6 +1251,9 @@ declare global {
         "app:showoverlayblocknums"?: boolean;
         "app:ctrlvpaste"?: boolean;
         "app:confirmquit"?: boolean;
+        "app:hideaibutton"?: boolean;
+        "app:disablectrlshiftarrows"?: boolean;
+        "app:disablectrlshiftdisplay"?: boolean;
         "feature:waveappbuilder"?: boolean;
         "ai:*"?: boolean;
         "ai:preset"?: string;
@@ -1415,6 +1435,9 @@ declare global {
         "activity:waveaiactiveminutes"?: number;
         "activity:waveaifgminutes"?: number;
         "activity:termcommandsrun"?: number;
+        "activity:termcommands:remote"?: number;
+        "activity:termcommands:durable"?: number;
+        "activity:termcommands:wsl"?: number;
         "app:firstday"?: boolean;
         "app:firstlaunch"?: boolean;
         "action:initiator"?: "keyboard" | "mouse";
@@ -1428,7 +1451,8 @@ declare global {
         "wsh:haderror"?: boolean;
         "conn:conntype"?: string;
         "conn:wsherrorcode"?: string;
-        "onboarding:feature"?: "waveai" | "magnify" | "wsh";
+        "conn:errorcode"?: string;
+        "onboarding:feature"?: "waveai" | "durable" | "magnify" | "wsh";
         "onboarding:version"?: string;
         "onboarding:githubstar"?: "already" | "star" | "later";
         "display:height"?: number;
@@ -1442,6 +1466,8 @@ declare global {
         "count:workspaces"?: number;
         "count:sshconn"?: number;
         "count:wslconn"?: number;
+        "count:jobs"?: number;
+        "count:jobsconnected"?: number;
         "count:views"?: {[key: string]: number};
         "waveai:apitype"?: string;
         "waveai:model"?: string;
@@ -1470,6 +1496,8 @@ declare global {
         "waveai:islocal"?: boolean;
         "waveai:feedback"?: "good" | "bad";
         "waveai:action"?: string;
+        "job:donereason"?: string;
+        "job:kind"?: string;
         $set?: TEventUserProps;
         $set_once?: TEventUserProps;
     };
