@@ -190,14 +190,11 @@ func generateTSTypeInternal(rtype reflect.Type, tsTypesMap map[reflect.Type]stri
 	}
 	var isWaveObj bool
 	if !embedded {
-		buf.WriteString(fmt.Sprintf("// %s\n", rtype.String()))
 		if rtype.Implements(waveObjRType) || reflect.PointerTo(rtype).Implements(waveObjRType) {
 			isWaveObj = true
-			buf.WriteString(fmt.Sprintf("type %s = WaveObj & {\n", tsTypeName))
-		} else {
-			buf.WriteString(fmt.Sprintf("type %s = {\n", tsTypeName))
 		}
 	}
+	var fieldsBuf bytes.Buffer
 	var subTypes []reflect.Type
 	for i := 0; i < rtype.NumField(); i++ {
 		field := rtype.Field(i)
@@ -206,7 +203,7 @@ func generateTSTypeInternal(rtype reflect.Type, tsTypesMap map[reflect.Type]stri
 		}
 		if field.Anonymous {
 			embeddedBuf, embeddedTypes := generateTSTypeInternal(field.Type, tsTypesMap, true)
-			buf.WriteString(embeddedBuf)
+			fieldsBuf.WriteString(embeddedBuf)
 			subTypes = append(subTypes, embeddedTypes...)
 			continue
 		}
@@ -226,7 +223,7 @@ func generateTSTypeInternal(rtype reflect.Type, tsTypesMap map[reflect.Type]stri
 			if tsTypeTag == "-" {
 				continue
 			}
-			buf.WriteString(fmt.Sprintf("    %s%s: %s;\n", fieldName, optMarker, tsTypeTag))
+			fieldsBuf.WriteString(fmt.Sprintf("    %s%s: %s;\n", fieldName, optMarker, tsTypeTag))
 			continue
 		}
 		tsType, fieldSubTypes := TypeToTSType(field.Type, tsTypesMap)
@@ -237,10 +234,24 @@ func generateTSTypeInternal(rtype reflect.Type, tsTypesMap map[reflect.Type]stri
 		if tsType == "UIContext" {
 			optMarker = "?"
 		}
-		buf.WriteString(fmt.Sprintf("    %s%s: %s;\n", fieldName, optMarker, tsType))
+		fieldsBuf.WriteString(fmt.Sprintf("    %s%s: %s;\n", fieldName, optMarker, tsType))
 	}
 	if !embedded {
-		buf.WriteString("};\n")
+		buf.WriteString(fmt.Sprintf("// %s\n", rtype.String()))
+		if fieldsBuf.Len() == 0 && !isWaveObj {
+			// empty struct - use "object" instead of "{}" to satisfy linter
+			buf.WriteString(fmt.Sprintf("type %s = object;\n", tsTypeName))
+		} else if isWaveObj {
+			buf.WriteString(fmt.Sprintf("type %s = WaveObj & {\n", tsTypeName))
+			buf.Write(fieldsBuf.Bytes())
+			buf.WriteString("};\n")
+		} else {
+			buf.WriteString(fmt.Sprintf("type %s = {\n", tsTypeName))
+			buf.Write(fieldsBuf.Bytes())
+			buf.WriteString("};\n")
+		}
+	} else {
+		buf.Write(fieldsBuf.Bytes())
 	}
 	return buf.String(), subTypes
 }
@@ -453,16 +464,12 @@ func generateWshClientApiMethod_ResponseStream(methodDecl *wshrpc.WshRpcMethodDe
 	if methodDecl.DefaultResponseDataType != nil {
 		respType, _ = TypeToTSType(methodDecl.DefaultResponseDataType, tsTypesMap)
 	}
-	dataName := "null"
-	if methodDecl.CommandDataType != nil {
-		dataName = "data"
-	}
+	methodSigDataParams, dataName := getTsWshMethodDataParamsAndExpr(methodDecl, tsTypesMap)
 	genRespType := fmt.Sprintf("AsyncGenerator<%s, void, boolean>", respType)
-	if methodDecl.CommandDataType != nil {
-		cmdDataTsName, _ := TypeToTSType(methodDecl.CommandDataType, tsTypesMap)
-		sb.WriteString(fmt.Sprintf("	%s(client: WshClient, data: %s, opts?: RpcOpts): %s {\n", methodDecl.MethodName, cmdDataTsName, genRespType))
-	} else {
+	if methodSigDataParams == "" {
 		sb.WriteString(fmt.Sprintf("	%s(client: WshClient, opts?: RpcOpts): %s {\n", methodDecl.MethodName, genRespType))
+	} else {
+		sb.WriteString(fmt.Sprintf("	%s(client: WshClient, %s, opts?: RpcOpts): %s {\n", methodDecl.MethodName, methodSigDataParams, genRespType))
 	}
 	sb.WriteString(fmt.Sprintf("        return client.wshRpcStream(%q, %s, opts);\n", methodDecl.Command, dataName))
 	sb.WriteString("    }\n")
@@ -477,20 +484,40 @@ func generateWshClientApiMethod_Call(methodDecl *wshrpc.WshRpcMethodDecl, tsType
 		rtnTypeName, _ := TypeToTSType(methodDecl.DefaultResponseDataType, tsTypesMap)
 		rtnType = fmt.Sprintf("Promise<%s>", rtnTypeName)
 	}
-	dataName := "null"
-	if methodDecl.CommandDataType != nil {
-		dataName = "data"
-	}
-	if methodDecl.CommandDataType != nil {
-		cmdDataTsName, _ := TypeToTSType(methodDecl.CommandDataType, tsTypesMap)
-		sb.WriteString(fmt.Sprintf("    %s(client: WshClient, data: %s, opts?: RpcOpts): %s {\n", methodDecl.MethodName, cmdDataTsName, rtnType))
-	} else {
+	methodSigDataParams, dataName := getTsWshMethodDataParamsAndExpr(methodDecl, tsTypesMap)
+	if methodSigDataParams == "" {
 		sb.WriteString(fmt.Sprintf("    %s(client: WshClient, opts?: RpcOpts): %s {\n", methodDecl.MethodName, rtnType))
+	} else {
+		sb.WriteString(fmt.Sprintf("    %s(client: WshClient, %s, opts?: RpcOpts): %s {\n", methodDecl.MethodName, methodSigDataParams, rtnType))
 	}
 	methodBody := fmt.Sprintf("        return client.wshRpcCall(%q, %s, opts);\n", methodDecl.Command, dataName)
 	sb.WriteString(methodBody)
 	sb.WriteString("    }\n")
 	return sb.String()
+}
+
+func getTsWshMethodDataParamsAndExpr(methodDecl *wshrpc.WshRpcMethodDecl, tsTypesMap map[reflect.Type]string) (string, string) {
+	dataTypes := methodDecl.GetCommandDataTypes()
+	if len(dataTypes) == 0 {
+		return "", "null"
+	}
+	if len(dataTypes) == 1 {
+		cmdDataTsName, _ := TypeToTSType(dataTypes[0], tsTypesMap)
+		return fmt.Sprintf("data: %s", cmdDataTsName), "data"
+	}
+	var methodParamBuilder strings.Builder
+	var argBuilder strings.Builder
+	for idx, dataType := range dataTypes {
+		if idx > 0 {
+			methodParamBuilder.WriteString(", ")
+			argBuilder.WriteString(", ")
+		}
+		argName := fmt.Sprintf("arg%d", idx+1)
+		cmdDataTsName, _ := TypeToTSType(dataType, tsTypesMap)
+		methodParamBuilder.WriteString(fmt.Sprintf("%s: %s", argName, cmdDataTsName))
+		argBuilder.WriteString(argName)
+	}
+	return methodParamBuilder.String(), fmt.Sprintf("{ args: [%s] }", argBuilder.String())
 }
 
 func GenerateWaveObjTypes(tsTypesMap map[reflect.Type]string) {
